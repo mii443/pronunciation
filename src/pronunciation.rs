@@ -1,5 +1,7 @@
 use std::{collections::HashMap, fs::File, io::{BufReader, BufRead}};
 
+use wana_kana::ConvertJapanese;
+
 macro_rules! cm {
     ($($k:expr => $v:expr),* $(,)?) => {{
         core::convert::From::from([$((String::from($k), $v),)*])
@@ -25,14 +27,13 @@ pub struct Pronunciation {
 }
 
 impl Pronunciation {
-    pub fn get_kana(&self, word: String) -> String {
-        let pronunciation = self.pronunciation_map.get(&word.to_uppercase()).unwrap();
+    pub fn phoneme_to_kana(&self, phonemes: &Vec<String>) -> String {
         let mut kana = String::default();
         let mut bef: Option<String> = None;
-        for (i, phoneme) in pronunciation.iter().enumerate() {
+        for (i, phoneme) in phonemes.iter().enumerate() {
             let m = bef.clone().unwrap_or(String::default());
     
-            if m == String::from("") && self.vowels.contains(pronunciation.get(i + 1).unwrap_or(&String::default())) {
+            if m == String::from("") && self.vowels.contains(phonemes.get(i + 1).unwrap_or(&String::default())) {
                 bef = Some(phoneme.clone());
                 continue;
             }
@@ -45,10 +46,18 @@ impl Pronunciation {
             bef = None;
             kana += &kanas;
     
-            println!("{}:{}:{}", m, phoneme, kanas);
+            //println!("{}:{}:{}", m, phoneme, kanas);
         }
-        println!("{}: {}", word, kana);
+        //println!("{}: {}", word, kana);
         kana
+    }
+
+    pub fn get_kana(&self, word: String) -> String {
+        if let Some(phonemes) = self.pronunciation_map.get(&word.to_uppercase()) {
+            self.phoneme_to_kana(phonemes)
+        } else {
+            word.to_kana().to_katakana()
+        }
     }
 
     pub fn new(dict_file: &str) -> Self {
